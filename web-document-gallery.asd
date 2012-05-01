@@ -4,4 +4,4 @@
                  cl-who
                  hunchentoot)
     :serial t
-    :components ())
+    :components ((:file "web-elements")))
