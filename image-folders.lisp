@@ -6,7 +6,9 @@
    :hash-format
    :file-hash
    :image-file-p
-   :images-in-folder))
+   :images-in-folder
+   :create-thumbnail
+   :thumb-filename))
 ;;; TODO maybe migrate to cl-fad
 
 (in-package :image-folders)
@@ -61,13 +63,22 @@
       (values (round (* w l) h) l)
       (values l (round (* h l) w))))
 
-;; TODO seems to take an awful lot of memory
 (defun create-thumbnail (file &optional (long-side 100) (ending 'thumb))
-  (let ((image (ch-image:read-image-file file)))
-    (multiple-value-bind (width height)
-        (resize-to-long-side (ch-image:image-width image)
-                             (ch-image:image-height image)
-                             long-side)
-      (ch-image:write-jpeg-file
-       (thumb-filename file (format nil "~(~A~)" ending))
-       (ch-image:resize-image image width height)))))
+  (let ((thumb-filename (thumb-filename file (format nil "~(~A~)" ending))))
+    (cl-gd:with-image-from-file (image file)
+      (multiple-value-bind (width height)
+          (resize-to-long-side (cl-gd:image-width image)
+                               (cl-gd:image-height image)
+                               long-side)
+        (cl-gd:with-image* (width height)
+          ;; TODO account for exif rotation
+          (cl-gd:copy-image image cl-gd:*default-image*
+                            0 0 0 0
+                            (cl-gd:image-width image) (cl-gd:image-height image)
+                            :dest-width width
+                            :dest-height height
+                            :resize t)
+          ;; TODO check for existing thumbnails??
+          (cl-gd:write-image-to-file thumb-filename
+                                     :if-exists :supersede))))
+    thumb-filename))

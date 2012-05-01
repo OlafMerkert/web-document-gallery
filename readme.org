@@ -1,0 +1,4 @@
+* Installation
+** CL-GD
+Install ~libgd2-xpm-dev~.
+Go to ~<qlsoft>/cl-gd-***~, remove ~-liconv~ from the ~Makefile~, run ~make~ and copy ~cl-gd-glue.so~ to ~/usr/local/lib~.
