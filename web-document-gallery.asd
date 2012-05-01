@@ -4,7 +4,8 @@
                  cl-who
                  hunchentoot
                  com.gigamonkeys.pathnames
-                 ironclad)
+                 ironclad
+                 ch-image)
     :serial t
     :components ((:file "web-elements")
                  (:file "image-folders")))
