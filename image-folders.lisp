@@ -1,6 +1,7 @@
 (defpackage :image-folders
   (:use :cl :ol
-        :com.gigamonkeys.pathnames)
+        :com.gigamonkeys.pathnames
+        :zpb-exif)
   (:export
    :hash=
    :hash-format
@@ -89,3 +90,20 @@ LONG-SIDES."
                                                     filenames))
                                        :if-exists :supersede)))))
     (nreverse filenames)))
+
+(defun image-orientation (file)
+  "determine the flipping and rotation operation required to get the
+image FILE to standard orientation.  Returns two values: first value
+designates a flipping operation (nil, :vertical or :horizontal), the
+second values the degrees of rotation to be applied after the
+flipping."
+  (ecase (exif-value "Orientation"
+                     (make-exif file))
+    (1 (values nil 0))
+    (2 (values :vertical 0))
+    (3 (values nil 180))
+    (4 (values :horizontal 0))
+    (5 (values :vertical 90))
+    (6 (values nil 270))
+    (7 (values :vertical 270))
+    (8 (values nil 90))))
