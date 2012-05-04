@@ -50,10 +50,11 @@
   (equalp a b))
 
 ;;; create smaller versions of images
-(defun thumb-filename (file &optional (ending "thumb"))
+(defun scaled-filename (file size &optional (ending "scaled"))
+  "Generate the pathname for a scaled version of the FILE."
   (let ((hash (hash-format (file-hash file))))
     (make-pathname
-     :name (format nil "~A.~A" hash ending)
+     :name (format nil "~A.~A-~A" hash ending size)
      :type "jpg"
      :defaults thumb-dir)))
 
@@ -63,22 +64,28 @@
       (values (round (* w l) h) l)
       (values l (round (* h l) w))))
 
-(defun create-thumbnail (file &optional (long-side 100) (ending 'thumb))
-  (let ((thumb-filename (thumb-filename file (format nil "~(~A~)" ending))))
+(defun create-scaled-version (file &rest long-sides)
+  "Take the image at FILE and generate scaled versions for each of
+LONG-SIDES."
+  (unless long-sides
+    (setf long-sides (list 100)))
+  (let (filenames)
     (cl-gd:with-image-from-file (image file)
-      (multiple-value-bind (width height)
-          (resize-to-long-side (cl-gd:image-width image)
-                               (cl-gd:image-height image)
-                               long-side)
-        (cl-gd:with-image* (width height)
-          ;; TODO account for exif rotation
-          (cl-gd:copy-image image cl-gd:*default-image*
-                            0 0 0 0
-                            (cl-gd:image-width image) (cl-gd:image-height image)
-                            :dest-width width
-                            :dest-height height
-                            :resize t)
-          ;; TODO check for existing thumbnails??
-          (cl-gd:write-image-to-file thumb-filename
-                                     :if-exists :supersede))))
-    thumb-filename))
+      (dolist (long-side long-sides)
+        (multiple-value-bind (width height)
+            (resize-to-long-side (cl-gd:image-width image)
+                                 (cl-gd:image-height image)
+                                 long-side)
+          (cl-gd:with-image* (width height)
+            ;; TODO account for exif rotation
+            (cl-gd:copy-image image cl-gd:*default-image*
+                              0 0 0 0
+                              (cl-gd:image-width image) (cl-gd:image-height image)
+                              :dest-width width
+                              :dest-height height
+                              :resize t)
+            ;; TODO check for existing thumbnails??
+            (cl-gd:write-image-to-file (first (push (scaled-filename file long-side)
+                                                    filenames))
+                                       :if-exists :supersede)))))
+    (nreverse filenames)))
