@@ -10,7 +10,8 @@
    :image-file-p
    :images-in-folder
    :create-thumbnail
-   :thumb-filename))
+   :thumb-filename
+   :scaled-filename))
 ;;; TODO maybe migrate to cl-fad
 
 (in-package :image-folders)
