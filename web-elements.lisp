@@ -53,6 +53,8 @@
      (with-html-output (stream)
        ,@body)))
 
+(defgeneric canonical-url (object))
+
 (defclass/f image ()
   (file-hash
    original-file
@@ -61,6 +63,9 @@
 (define-html-presentation (image)
   (:h2 (esc (pathname-name (original-file image))))
   (:img :src (format nil "/present.jpg?hash=~A&size=thumb" (image-folders:hash-format (file-hash image)))))
+
+(defmethod canonical-url ((image image))
+  (format nil "/present.html?hash=~A" (image-folders:hash-format (file-hash image))))
 
 (hunchentoot:define-easy-handler (image-present :uri "/present.jpg") (hash size)
   (when (string= size "thumb")
@@ -105,4 +110,8 @@
    (dolist (image (content-list image-folder))
      (htm
       (:li
-       (present-html image stream))))))
+       (:a :href (canonical-url image)
+        (present-html image stream)))))))
+
+(defmethod canonical-url ((image-folder image-folder))
+  (format nil "/present/?name=~A" (name image-folder)))
