@@ -105,16 +105,15 @@ LONG-SIDES."
   (unless long-sides
     (setf long-sides (list 100)))
   (multiple-value-bind (flip rotation) (image-orientation file)
-    (with-image-from-file (image file)
-      ;; flip and rotate, if necessary
-      (setf image
-            (rotate/destroy (flip/destroy image flip) rotation))
-      (mapcar (lambda (long-side)
-                (aprog1 (scaled-filename file long-side)
-                  (create-scaled-version it image long-side)))
-              long-sides))))
+    (flet ((fix-orientation (image)
+             (rotate/destroy (flip/destroy image flip) rotation)))
+     (with-image-from-file (image file)
+       (mapcar (lambda (long-side)
+                 (aprog1 (scaled-filename file long-side)
+                   (create-scaled-version it image long-side #'fix-orientation)))
+               long-sides)))))
 
-(defun create-scaled-version (filename image long-side)
+(defun create-scaled-version (filename image long-side fix-orientation)
   "helper function for CREATE-SCALED-VERSIONS."
   (multiple-value-bind (width height)
       (resize-to-long-side (image-width image)
@@ -129,6 +128,7 @@ LONG-SIDES."
                         :resample t
                         :resize t)
       ;; TODO check for existing thumbnails??
+      (setf *default-image* (funcall fix-orientation *default-image*))
       (write-image-to-file filename :if-exists :supersede))))
 
 (defun image-orientation (file)
@@ -148,4 +148,4 @@ flipping."
     (7 (values :vertical 270))
     (8 (values nil 90))))
 
-;; TODO resizing is not very pretty yet. Neither very fast. fix that.
+;; TODO resizing is not very pretty yet.
