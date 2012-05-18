@@ -14,20 +14,30 @@
 (defvar presentable-objects
   (make-hash-table :test 'equal :size 400))
 
+(defvar named-folders
+  (make-hash-table :test 'equal :size 30))
+
 (hunchentoot:define-easy-handler (standard-present :uri "/present.html") (hash)
   (multiple-value-bind (object present) (gethash hash presentable-objects)
     (if present
-        (with-scaffold (stream :title (description-string object))
+        (with-scaffold (stream :title  (description-string object))
           (present-html object stream))
         (error "Object with hash ~A not found." (escape-string hash)))))
+
+(hunchentoot:define-easy-handler (folder-present :uri "/present/") (name)
+  (multiple-value-bind (folder present) (gethash name named-folders)
+    (if present
+        (with-scaffold (stream :title (description-string folder))
+          (present-html folder stream))
+        (error "Folder with name ~A not found." (escape-string name)))))
 
 (defmacro with-scaffold ((stream-var &key (title "Presenting ...")) &body body)
   `(with-html-output-to-string (,stream-var nil :prologue t :indent t)
      (:html
       (:head
-       (:title ,title))
+       (:title (esc ,title)))
       (:body
-       (:h1 ,title)
+       (:h1 (esc ,title))
        (:p :style "color: red;" "This site is still in heavy development.")
        ,@body))))
 
@@ -49,7 +59,7 @@
    thumbnail))
 
 (define-html-presentation (image)
-  (:h2 (pathname-name (original-file image)))
+  (:h2 (esc (pathname-name (original-file image))))
   (:img :src (format nil "/present.jpg?hash=~A&size=thumb" (image-folders:hash-format (file-hash image)))))
 
 (hunchentoot:define-easy-handler (image-present :uri "/present.jpg") (hash size)
@@ -67,10 +77,32 @@
                  :original-file path
                  :thumbnail (image-folders:scaled-filename path 100)))
 
+(defun folder-name (folder)
+  (or (pathname-name folder)
+      (last1 (pathname-directory folder))))
+
 (defun load-images-from (folder)
-  (mapc (compose (lambda (image)
-                   (setf (gethash (image-folders:hash-format (file-hash image))
-                                  presentable-objects)
-                         image))
-                 #'path->image)
-        (image-folders:images-in-folder folder)))
+  (setf (gethash (folder-name folder) named-folders)
+        (make-instance 'image-folder
+                       :name (folder-name folder)
+                       :content-list (mapcar
+                                      (compose (lambda (image)
+                                                 (setf (gethash (image-folders:hash-format (file-hash image))
+                                                                presentable-objects)
+                                                       image))
+                                               #'path->image)
+                                      (image-folders:images-in-folder folder)))))
+
+(defclass/f image-folder ()
+  (name
+   content-list))
+
+(defmethod description-string ((image-folder image-folder))
+  (name image-folder))
+
+(define-html-presentation (image-folder)
+  (:ul
+   (dolist (image (content-list image-folder))
+     (htm
+      (:li
+       (present-html image stream))))))
