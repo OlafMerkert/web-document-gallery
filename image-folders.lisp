@@ -1,6 +1,7 @@
 (defpackage :image-folders
   (:use :cl :ol
         :com.gigamonkeys.pathnames
+        :cl-gd
         :zpb-exif)
   (:export
    :hash=
@@ -65,31 +66,70 @@
       (values (round (* w l) h) l)
       (values l (round (* h l) w))))
 
-(defun create-scaled-version (file &rest long-sides)
+(defun flip/destroy (image direction)
+  "Flip an gd image :HORIZONTAL or :VERTICAL or not at all, return the
+flipped copy and destroy the original image."
+  (if direction
+      (let* ((w (image-width  image))
+             (h (image-height image))
+             (new-image (create-image w h )))
+        (case direction
+          (:horizontal
+           (copy-image image new-image 0 0 (- h 1) 0 w h))
+          (:vertical
+           (copy-image image new-image 0 0 0 (- w 1) w h)))
+        (destroy-image image)
+        new-image)
+      image))
+
+(defun rotate/destroy (image angle)
+  "Rotate a gd image by 0, 90, 180 or 270 degrees, return the rotated
+  copy and destroy the original image."
+  (if (not (zerop angle))
+      (let* ((w (image-width  image))
+             (h (image-height image))
+             (l (zerop (mod angle 180))) ; no aspect change
+             (n-w (if l w h))
+             (n-h (if l h w))
+             (new-image (create-image n-w n-h)))
+        (copy-image image new-image 0 0 (round n-w 2) (round n-h 2) w h
+                    :rotate t :angle angle)
+        (destroy-image image)
+        new-image)
+      image))
+
+
+(defun create-scaled-versions (file &rest long-sides)
   "Take the image at FILE and generate scaled versions for each of
 LONG-SIDES."
   (unless long-sides
     (setf long-sides (list 100)))
-  (let (filenames)
-    (cl-gd:with-image-from-file (image file)
-      (dolist (long-side long-sides)
-        (multiple-value-bind (width height)
-            (resize-to-long-side (cl-gd:image-width image)
-                                 (cl-gd:image-height image)
-                                 long-side)
-          (cl-gd:with-image* (width height)
-            ;; TODO account for exif rotation
-            (cl-gd:copy-image image cl-gd:*default-image*
-                              0 0 0 0
-                              (cl-gd:image-width image) (cl-gd:image-height image)
-                              :dest-width width
-                              :dest-height height
-                              :resize t)
-            ;; TODO check for existing thumbnails??
-            (cl-gd:write-image-to-file (first (push (scaled-filename file long-side)
-                                                    filenames))
-                                       :if-exists :supersede)))))
-    (nreverse filenames)))
+  (multiple-value-bind (flip rotation) (image-orientation file)
+    (with-image-from-file (image file)
+      ;; flip and rotate, if necessary
+      (setf image
+            (rotate/destroy (flip/destroy image flip) rotation))
+      (mapcar (lambda (long-side)
+                (aprog1 (scaled-filename file long-side)
+                  (create-scaled-version it image long-side)))
+              long-sides))))
+
+(defun create-scaled-version (filename image long-side)
+  "helper function for CREATE-SCALED-VERSIONS."
+  (multiple-value-bind (width height)
+      (resize-to-long-side (image-width image)
+                           (image-height image)
+                           long-side)
+    (with-image* (width height)
+      (copy-image image *default-image*
+                        0 0 0 0
+                        (image-width image) (image-height image)
+                        :dest-width width
+                        :dest-height height
+                        :resample t
+                        :resize t)
+      ;; TODO check for existing thumbnails??
+      (write-image-to-file filename :if-exists :supersede))))
 
 (defun image-orientation (file)
   "determine the flipping and rotation operation required to get the
@@ -107,3 +147,5 @@ flipping."
     (6 (values nil 270))
     (7 (values :vertical 270))
     (8 (values nil 90))))
+
+;; TODO resizing is not very pretty yet. Neither very fast. fix that.
