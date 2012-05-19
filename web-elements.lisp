@@ -73,7 +73,8 @@ keyword parameters to a function.  Possibly add global state parameters."
    thumbnail))
 
 (define-html-presentation (image)
-  (:img :src (uri "/present.jpg" :hash (file-hash image) :size "preview")))
+  (:div :class "image-preview"
+   (:img :src (uri "/present.jpg" :hash (file-hash image) :size "preview"))))
 
 (defmethod canonical-url ((image image))
   (uri "/present.html" :hash (file-hash image)))

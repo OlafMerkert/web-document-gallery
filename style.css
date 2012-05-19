@@ -23,8 +23,9 @@ a {
     font-style: italic;
 }
 
-ul.imagelist li {
+ul.imagelist li, div.image-preview {
     display: block;
+    float: left;
     border: 2px gray outset;
     background: black;
     margin: 4px;
@@ -34,7 +35,6 @@ ul.imagelist li {
 }
 
 ul.imagelist li {
-    float: left;
     /* TODO adjust image size to thumbnail size */
     width: 128px;
     height: 128px;
