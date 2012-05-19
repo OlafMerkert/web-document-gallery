@@ -2,11 +2,9 @@
   (:use :cl :ol
         :com.gigamonkeys.pathnames
         :cl-gd
-        :zpb-exif)
+        :zpb-exif
+        :file-hashes)
   (:export
-   :hash=
-   :hash-format
-   :file-hash
    :image-file-p
    :images-in-folder
    :create-thumbnail
@@ -34,28 +32,10 @@
            ("jpg" "png" "gif")
            :test string-equal)))
 
-;;; calculate hashes and display them nicely
-(defun file-hash (file)
-  (ironclad:digest-file 'ironclad:sha1 file))
-
-(defparameter hex-chars "0123456789abcdef")
-
-(defun hash-format (hash-vector)
-  (with-output-to-string (stream)
-    (map 'nil
-         (lambda (h)
-           (multiple-value-bind (q r) (floor h 16)
-             (write-char (char hex-chars q) stream)
-             (write-char (char hex-chars r) stream)))
-         hash-vector)))
-
-(defun hash= (a b)
-  (equalp a b))
-
 ;;; create smaller versions of images
 (defun scaled-filename (file size &optional (ending "scaled"))
   "Generate the pathname for a scaled version of the FILE."
-  (let ((hash (hash-format (file-hash file))))
+  (with-hash (hash file)
     (make-pathname
      :name (format nil "~A.~A-~A" hash ending size)
      :type "jpg"

@@ -8,5 +8,6 @@
                  cl-gd
                  zpb-exif)
     :serial t
-    :components ((:file "web-elements")
-                 (:file "image-folders")))
+    :components ((:file "file-hashes")
+                 (:file "image-folders")
+                 (:file "web-elements")))
