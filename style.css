@@ -1,0 +1,41 @@
+/* (c) 2012 Olaf Merkert */
+
+body {
+    font-family: sans-serif;
+    font-size: 11pt;
+    color: darkblue;
+    background-color: white;
+}
+
+p {
+    text-align: justify;
+    text-indent: 1em;
+    font-size: 12pt;
+}
+
+a {
+    text-decoration: none;
+    color: darkred;
+}
+
+.message {
+    color: darkgrey;
+    font-style: italic;
+}
+
+ul.imagelist li {
+    display: block;
+    border: 2px gray outset;
+    background: black;
+    margin: 4px;
+    padding: 2px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+ul.imagelist li {
+    float: left;
+    /* TODO adjust image size to thumbnail size */
+    width: 128px;
+    height: 128px;
+}
