@@ -44,8 +44,13 @@
        (:link :rel "stylesheet" :type "text/css" :href "/present.css"))
       (:body
        (:h1 (esc ,title))
-       (:p :style "color: red;" "This site is still in heavy development.")
+       (:p :class "message" "This site is still in heavy development.")
        ,@body))))
+
+(defun uri (base &rest parameters)
+  "Format an url with BASE and a number of PARAMETERS, given like
+keyword parameters to a function.  Possibly add global state parameters."
+  (format nil "~A~@[?~{~(~A~)=~A~^&~}~]" base parameters))
 
 (defgeneric description-string (object))
 
@@ -68,10 +73,10 @@
    thumbnail))
 
 (define-html-presentation (image)
-  (:img :src (format nil "/present.jpg?hash=~A&size=preview" (file-hash image))))
+  (:img :src (uri "/present.jpg" :hash (file-hash image) :size "preview")))
 
 (defmethod canonical-url ((image image))
-  (format nil "/present.html?hash=~A" (file-hash image)))
+  (uri "/present.html" :hash (file-hash image)))
 
 (hunchentoot:define-easy-handler (image-present :uri "/present.jpg") (hash size)
   (multiple-value-bind (image present) (gethash hash presentable-objects)
@@ -124,8 +129,8 @@
      (htm
       (:li
        (:a :href (canonical-url image)
-           (:img :src (format nil "/present.jpg?hash=~A&size=thumb" (file-hash image))
+           (:img :src (uri "/present.jpg" :hash  (file-hash image) :size "thumb")
                  :alt (description-string image))))))))
 
 (defmethod canonical-url ((image-folder image-folder))
-  (format nil "/present/?name=~A" (name image-folder)))
+  (uri "/present/" :name (name image-folder)))
