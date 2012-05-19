@@ -9,7 +9,9 @@
    :images-in-folder
    :create-thumbnail
    :thumb-filename
-   :scaled-filename))
+   :scaled-filename
+   :thumb-size
+   :preview-size))
 ;;; TODO maybe migrate to cl-fad
 
 (in-package :image-folders)
@@ -19,6 +21,9 @@
 
 (defparameter thumb-dir
   #P "~/beispiel-galerie/thumbs/")
+
+(defparameter thumb-size 128)
+(defparameter preview-size 1024)
 
 ;;; get a listing of all the image files in a folder
 (defun images-in-folder (folder)

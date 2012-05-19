@@ -64,29 +64,36 @@
 (defclass/f image ()
   (file-hash
    original-file
+   preview
    thumbnail))
 
 (define-html-presentation (image)
-  (:h2 (esc (pathname-name (original-file image))))
-  (:img :src (format nil "/present.jpg?hash=~A&size=thumb" (image-folders:hash-format (file-hash image)))))
+  (:img :src (format nil "/present.jpg?hash=~A&size=preview" (file-hash image))))
 
 (defmethod canonical-url ((image image))
-  (format nil "/present.html?hash=~A" (image-folders:hash-format (file-hash image))))
+  (format nil "/present.html?hash=~A" (file-hash image)))
 
 (hunchentoot:define-easy-handler (image-present :uri "/present.jpg") (hash size)
-  (when (string= size "thumb")
-    (multiple-value-bind (image present) (gethash hash presentable-objects)
-      (when (and present (typep image 'image))
-        (hunchentoot:handle-static-file (thumbnail image))))))
+  (multiple-value-bind (image present) (gethash hash presentable-objects)
+    (when (and present (typep image 'image))
+      (cond ((string= size "thumb")
+             (hunchentoot:handle-static-file (thumbnail image)))
+            ((string= size "preview")
+             (hunchentoot:handle-static-file (preview image)))
+            ((string= size "original")
+             (hunchentoot:handle-static-file (original-file image)))))))
+;; TODO error handling in the IMAGE-PRESENT handler
 
 (defmethod description-string ((image image))
-  "Presenting image ...")
+  (pathname-name (original-file image)))
 
 (defun path->image (path)
-  (make-instance 'image
-                 :file-hash (image-folders:file-hash path)
-                 :original-file path
-                 :thumbnail (image-folders:scaled-filename path 100)))
+  (file-hashes:with-hash (hash path)
+    (make-instance 'image
+                   :file-hash hash
+                   :original-file path
+                   :preview (image-folders:scaled-filename hash image-folders:preview-size)
+                   :thumbnail (image-folders:scaled-filename hash image-folders:thumb-size))))
 
 (defun folder-name (folder)
   (or (pathname-name folder)
@@ -98,7 +105,7 @@
                        :name (folder-name folder)
                        :content-list (mapcar
                                       (compose (lambda (image)
-                                                 (setf (gethash (image-folders:hash-format (file-hash image))
+                                                 (setf (gethash (file-hash image)
                                                                 presentable-objects)
                                                        image))
                                                #'path->image)
@@ -112,12 +119,13 @@
   (name image-folder))
 
 (define-html-presentation (image-folder)
-  (:ul
+  (:ul :class "imagelist"
    (dolist (image (content-list image-folder))
      (htm
       (:li
        (:a :href (canonical-url image)
-        (present-html image stream)))))))
+           (:img :src (format nil "/present.jpg?hash=~A&size=thumb" (file-hash image))
+                 :alt (description-string image))))))))
 
 (defmethod canonical-url ((image-folder image-folder))
   (format nil "/present/?name=~A" (name image-folder)))
