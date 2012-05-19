@@ -58,7 +58,7 @@ flipped copy and destroy the original image."
   (if direction
       (let* ((w (image-width  image))
              (h (image-height image))
-             (new-image (create-image w h )))
+             (new-image (create-image w h t)))
         (case direction
           (:horizontal
            (copy-image image new-image 0 0 (- h 1) 0 w h))
@@ -77,7 +77,7 @@ flipped copy and destroy the original image."
              (l (zerop (mod angle 180))) ; no aspect change
              (n-w (if l w h))
              (n-h (if l h w))
-             (new-image (create-image n-w n-h)))
+             (new-image (create-image n-w n-h t)))
         (copy-image image new-image 0 0 (round n-w 2) (round n-h 2) w h
                     :rotate t :angle angle)
         (destroy-image image)
@@ -105,7 +105,7 @@ LONG-SIDES."
       (resize-to-long-side (image-width image)
                            (image-height image)
                            long-side)
-    (with-image* (width height)
+    (with-image* (width height t)
       (copy-image image *default-image*
                         0 0 0 0
                         (image-width image) (image-height image)
@@ -133,5 +133,3 @@ flipping."
     (6 (values nil 270))
     (7 (values :vertical 270))
     (8 (values nil 90))))
-
-;; TODO resizing is not very pretty yet.
