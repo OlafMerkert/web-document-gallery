@@ -54,7 +54,15 @@
 (hunchentoot:define-easy-handler (view-image :uri "/farben/bild-betrachten.html") (hash)
     (web-elements:with-scaffold (stream :title "Farbe aus dem Bild wählen.")
       (:div :class "hauptbild"
-            (:img :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)))))
+            (:img :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)
+                  :onclick ""))
+      (:form :class "farbemitteln"
+             (:label :for "radius" "Mitteln über Radius (in px):")
+             (:select :name "radius"
+                      (:option "5")
+                      (:option "10")
+                      (:option "20")
+                      (:option "50")))))
 
 (hunchentoot:define-easy-handler (view-image-jpg :uri "/farben/bild-betrachten.jpg") (hash)
   (let ((web-elements:presentable-objects uploaded-images))
@@ -66,6 +74,30 @@
 
 (defmethod web-elements:image-p ((colour-image colour-image))
   t)
+
+;;; open an image file and look at the colours around a point
+(defun mean-color (image-path x0 y0 radius)
+  (cl-gd:with-image-from-file (image image-path)
+    (let ((w (cl-gd:image-width))
+          (h (cl-gd:image-height))
+          (valid-pixels 0)
+          (red 0) (blue 0) (green 0)
+          (radius2 (expt radius 2)))
+      (loop for y from (- y0 radius) to (+ y0 radius) do
+           (loop for x from (- x0 radius) to (+ x0 radius) do
+                (when (and (< -1 x  w)
+                           (< -1 y h)
+                           (<= (+ (expt (- x x0) 2)
+                                  (expt (- y y0) 2))
+                               radius2))
+                  (let ((color (cl-gd:get-pixel x y)))
+                    (incf red (cl-gd:color-component :red color))
+                    (incf blue (cl-gd:color-component :blue color))
+                    (incf green (cl-gd:color-component :green color))
+                    (incf valid-pixels)))))
+      (vector (floor red valid-pixels)
+              (floor green valid-pixels)
+              (floor blue valid-pixels)))))
 
 ;;; give a table full of the known colour names and their rgb values
 (defstruct (farbe :conc-name (:type list))
