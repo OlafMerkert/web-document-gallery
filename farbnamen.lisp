@@ -32,6 +32,9 @@
        (:td)
        (:td (:input :type "submit" :value "Bild hochladen")))))))
 
+(defun file-extension (source)
+  (keyw (string-upcase (last1 (split-sequence:split-sequence #\/ (third source))))))
+
 (hunchentoot:define-easy-handler (process-upload-image :uri "/farben/process-bild-hochladen.html")
     (image-source api-key)
   ;; todo check api-key for validity
@@ -41,15 +44,28 @@
       (let ((thumb-fname
              (image-folders:scaled-filename hash image-folders:preview-size)))
         (unless (com.gigamonkeys.pathnames:file-exists-p thumb-fname)
-          (image-folders:create-scaled-versions image-path image-folders:preview-size))
+          (image-folders:create-scaled-versions image-path (file-extension image-source) image-folders:preview-size))
         (setf (gethash hash uploaded-images)
               (make-instance 'colour-image
                              :file-hash hash
-                             :preview thumb-fname))))))
+                             :preview thumb-fname))
+        (hunchentoot:redirect (web-elements:uri "/farben/bild-betrachten.html" :hash hash))))))
+
+(hunchentoot:define-easy-handler (view-image :uri "/farben/bild-betrachten.html") (hash)
+    (web-elements:with-scaffold (stream :title "Farbe aus dem Bild wählen.")
+      (:div :class "hauptbild"
+            (:img :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)))))
+
+(hunchentoot:define-easy-handler (view-image-jpg :uri "/farben/bild-betrachten.jpg") (hash)
+  (let ((web-elements:presentable-objects uploaded-images))
+    (web-elements:image-present :hash hash :size "preview")))
 
 (defclass/f colour-image ()
   (web-elements:file-hash
    web-elements:preview))
+
+(defmethod web-elements:image-p ((colour-image colour-image))
+  t)
 
 ;;; give a table full of the known colour names and their rgb values
 (defstruct (farbe :conc-name (:type list))

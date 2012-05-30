@@ -6,7 +6,11 @@
    :define-html-presentation
    :with-scaffold
    :file-hash
-   :preview))
+   :preview
+   :uri
+   :presentable-objects
+   :image-p
+   :image-present))
 
 (in-package :web-elements)
 
@@ -82,9 +86,17 @@ keyword parameters to a function.  Possibly add global state parameters."
 (defmethod canonical-url ((image image))
   (uri "/present.html" :hash (file-hash image)))
 
+(defgeneric image-p (object))
+
+(defmethod image-p (object)
+  nil)
+
+(defmethod image-p ((image image))
+  t)
+
 (hunchentoot:define-easy-handler (image-present :uri "/present.jpg") (hash size)
   (multiple-value-bind (image present) (gethash hash presentable-objects)
-    (when (and present (typep image 'image))
+    (when (and present (image-p image))
       (cond ((string= size "thumb")
              (hunchentoot:handle-static-file (thumbnail image)))
             ((string= size "preview")

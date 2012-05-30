@@ -87,7 +87,7 @@ flipped copy and destroy the original image."
       image))
 
 
-(defun create-scaled-versions (file &rest long-sides)
+(defun create-scaled-versions (file type &rest long-sides)
   "Take the image at FILE and generate scaled versions for each of
 LONG-SIDES."
   (unless long-sides
@@ -95,7 +95,7 @@ LONG-SIDES."
   (multiple-value-bind (flip rotation) (image-orientation file)
     (flet ((fix-orientation (image)
              (rotate/destroy (flip/destroy image flip) rotation)))
-     (with-image-from-file (image file)
+     (with-image-from-file (image file type)
        (mapcar (lambda (long-side)
                  (aprog1 (scaled-filename file long-side)
                    (create-scaled-version it image long-side #'fix-orientation)))

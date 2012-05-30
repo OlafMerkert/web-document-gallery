@@ -6,7 +6,8 @@
                  com.gigamonkeys.pathnames
                  ironclad
                  cl-gd
-                 zpb-exif)
+                 zpb-exif
+                 split-sequence)
     :serial t
     :components ((:file "file-hashes")
                  (:file "image-folders")
