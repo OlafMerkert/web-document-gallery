@@ -11,7 +11,9 @@
    :thumb-filename
    :scaled-filename
    :thumb-size
-   :preview-size))
+   :preview-size
+   :thumb-dir
+   :create-scaled-versions))
 ;;; TODO maybe migrate to cl-fad
 
 (in-package :image-folders)

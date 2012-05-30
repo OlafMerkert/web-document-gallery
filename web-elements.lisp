@@ -3,7 +3,10 @@
   (:export
    :start-server
    :stream
-   :define-html-presentation))
+   :define-html-presentation
+   :with-scaffold
+   :file-hash
+   :preview))
 
 (in-package :web-elements)
 

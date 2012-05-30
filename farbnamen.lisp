@@ -3,6 +3,54 @@
 
 (in-package :farbnamen)
 
+(defparameter farbnamen-imagefolder
+  #P "/home/olaf/farbnamen/")
+
+(defvar uploaded-images
+  (make-hash-table :test 'equal))
+
+;;; provide a page to upload images for colour extraction
+(hunchentoot:define-easy-handler (upload-image :uri "/farben/bild-hochladen.html")
+    ()
+  (web-elements:with-scaffold (stream :title "Farbanalyse - Bild hochladen")
+    ;; todo Anwendung beschreiben
+    (:form
+     :action "/farben/process-bild-hochladen.html"
+     :method "post"
+     :enctype "multipart/form-data"
+
+     (:table
+      (:tr
+       (:td (:label :for "image-source" "Zu analysierende Bilddatei:"))
+       (:td (:input :type "file" :name "image-source" :size "50")))
+     
+      (:tr
+       (:td (:label :for "api-key" "Kennwort: "))
+       (:td (:input :type "text" :name "api-key" :value "")))
+     
+      (:tr
+       (:td)
+       (:td (:input :type "submit" :value "Bild hochladen")))))))
+
+(hunchentoot:define-easy-handler (process-upload-image :uri "/farben/process-bild-hochladen.html")
+    (image-source api-key)
+  ;; todo check api-key for validity
+  (let ((image-folders:thumb-dir farbnamen-imagefolder)
+        (image-path (first image-source))) ; todo error handling if no file supplied
+    (file-hashes:with-hash (hash image-path)
+      (let ((thumb-fname
+             (image-folders:scaled-filename hash image-folders:preview-size)))
+        (unless (com.gigamonkeys.pathnames:file-exists-p thumb-fname)
+          (image-folders:create-scaled-versions image-path image-folders:preview-size))
+        (setf (gethash hash uploaded-images)
+              (make-instance 'colour-image
+                             :file-hash hash
+                             :preview thumb-fname))))))
+
+(defclass/f colour-image ()
+  (web-elements:file-hash
+   web-elements:preview))
+
 ;;; give a table full of the known colour names and their rgb values
 (defstruct (farbe :conc-name (:type list))
   farbe-name hex-code rgb-value)
