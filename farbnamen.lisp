@@ -74,16 +74,16 @@
              (:input :type "hidden" :id "hash" :value hash)
              (:label :for "radius" "Mitteln über Radius (in px):")
              (:select :id "radius"
-                      (:option "1
-")
+                      (:option "2")
                       (:option "5")
                       (:option "10")
                       (:option "20")
                       (:option "50")))
-      (:div :id "colourstarget")
       (:div :class "hauptbild"
             (:img :id "clickonit"
-                  :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)))))
+                  :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash))
+            (:img :id "circle" :src "/farben/transparenter-kreis.png?radius=50"))
+      (:div :id "colourstarget")))
 
 (defmacro+ps $$ ((selector event-binding &optional event) &body body)
   `((@ ($ ,selector) ,event-binding) (lambda ,(if event (list event)) ,@body)))
@@ -92,19 +92,31 @@
 (defparameter analyse-script
   (ps
     (defun analyse-colour (x y r)
+      ;; lade farben per ajax nach.
       ((@ ($ "#colourstarget") load) "/farben/bild-analyse.html"
        (create :hash ((@ ($ "#hash") val))
                :x x
                :y y
                :radius r))
-      #|(alert (concatenate 'string x ", " y ", " radius))|#)
+      ;; platziere den Marker und mache ihn sichtbar
+      (let ((marker ($ "#circle"))
+            (image-offset ((@ ($ "#clickonit") offset))))
+        ((@ marker attr) "src" (concatenate 'string
+                                            "/farben/transparenter-kreis.png"
+                                            "?radius="
+                                            r))
+        ((@ marker css) "left" (+ (@ image-offset left)
+                                  (- x r)))
+        ((@ marker css) "top" (+ (@ image-offset top)
+                                 (- y r)))
+        ((@ marker css) "visibility" "visible")))
     ($$ (document ready)
         ($$ ("#clickonit" click e)
           (analyse-colour (- (@ e |pageX|)
                              (@ this |offsetLeft|))
                           (- (@ e |pageY|)
                              (@ this |offsetTop|))
-                          ((@ ($ "#radius") val)))))))
+                          (|Number| ((@ ($ "#radius") val))))))))
 
 (hunchentoot:define-easy-handler (view-image-jpg :uri "/farben/bild-betrachten.jpg") (hash)
   (let ((web-elements:presentable-objects uploaded-images))
@@ -123,7 +135,7 @@
   (let ((diameter (* 2 radius))
         (out (hunchentoot:send-headers)))
     (vecto:with-canvas (:width diameter :height diameter)
-      (vecto:set-rgba-fill 0 0 1 0.7)
+      (vecto:set-rgba-fill 1 1 0 0.3)
       (vecto:centered-circle-path radius radius radius)
       (vecto:fill-path)
       (vecto:save-png-stream out))))
@@ -145,7 +157,6 @@ DEFAULT."
 
 (hunchentoot:define-easy-handler (analyse-colour :uri "/farben/bild-analyse.html")
     (hash x y radius)
-  #d
   (setf x (parse-integer/web x)
         y (parse-integer/web y)
         radius (parse-integer/web radius 10))

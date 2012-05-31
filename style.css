@@ -64,3 +64,11 @@ div.hauptbild {
     float: left;
     margin-left: 4pt;
 }
+
+#circle {
+    position: absolute;
+    display: block;
+    visibility: hidden;
+    top: 0px;
+    left: 0px;
+}
