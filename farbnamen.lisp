@@ -156,7 +156,25 @@ DEFAULT."
    (reduce #'+
            (map 'vector (lambda (x y) (expt (- x y) 2)) a b))))
 
-(defun next-colours (colour &optional (N 5) (distance #'euclidean-distance))
+(bind-multi ((name red green blue)
+             (part 0 1 2))
+  (defun name (c)
+    (aref c part)))
+
+(defun rgb-metric (a b)
+  "Colour metric from http://www.compuphase.com/cmetric.htm"
+  (let ((rbar (/ (+ (red a) (red b))))
+        (dred (expt (- (red a) (red b)) 2))
+        (dgreen (expt (- (green a) (green b)) 2))
+        (dblue (expt (- (blue a) (blue b)) 2)))
+    (sqrt (+
+           (* (+ 2 (/ rbar 256))
+              dred)
+           (* 4 dgreen)
+           (* (+ 2 (/ (- 255 rbar) 256))
+              dblue)))))
+
+(defun next-colours (colour &optional (N 5) (distance #'rgb-metric))
   "Find the N colours closest to COLOUR in FARBENTABELLE, according to the euclidean distance of the colours."
   (subseq
    (sort (copy-list farbentabelle)
