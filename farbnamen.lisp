@@ -82,7 +82,7 @@
       (:div :class "hauptbild"
             (:img :id "clickonit"
                   :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash))
-            (:img :id "circle" :src "/farben/transparenter-kreis.png?radius=50"))
+            (:img :id "circle" :src "/farben/transparenter-kreis.png?radius=1"))
       (:div :id "colourstarget")))
 
 (defmacro+ps $$ ((selector event-binding &optional event) &body body)
@@ -110,13 +110,17 @@
         ((@ marker css) "top" (+ (@ image-offset top)
                                  (- y r)))
         ((@ marker css) "visibility" "visible")))
+    (defun process-raw-click (x y)
+      (let ((image-offset ((@ ($ "#clickonit") offset))))
+       (analyse-colour (- x (@ image-offset left))
+                       (- y (@ image-offset top))
+                       (|Number| ((@ ($ "#radius") val))))))
     ($$ (document ready)
         ($$ ("#clickonit" click e)
-          (analyse-colour (- (@ e |pageX|)
-                             (@ this |offsetLeft|))
-                          (- (@ e |pageY|)
-                             (@ this |offsetTop|))
-                          (|Number| ((@ ($ "#radius") val))))))))
+          (process-raw-click (@ e |pageX|) (@ e |pageY|)))
+        ($$ ("#circle" click e)
+          (process-raw-click (@ e |pageX|) (@ e |pageY|)))
+        )))
 
 (hunchentoot:define-easy-handler (view-image-jpg :uri "/farben/bild-betrachten.jpg") (hash)
   (let ((web-elements:presentable-objects uploaded-images))
