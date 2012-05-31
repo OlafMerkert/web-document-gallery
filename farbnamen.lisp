@@ -232,6 +232,7 @@ DEFAULT."
            (* 4 dgreen)
            (* (+ 2 (/ (- 255 rbar) 256))
               dblue)))))
+;; todo find a better colour-metric
 
 (defun next-colours (colour &optional (N 5) (distance #'rgb-metric))
   "Find the N colours closest to COLOUR in FARBENTABELLE, according to the euclidean distance of the colours."
@@ -399,3 +400,5 @@ the information from the html hex colour code."
      ("wheat"                "#F5DEB3")
      ("whitesmoke"           "#F5F5F5")
      ("yellowgreen"          "#9ACD32"))))
+
+;;; todo find another colourtable
