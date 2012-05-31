@@ -39,3 +39,11 @@ ul.imagelist li {
     width: 128px;
     height: 128px;
 }
+
+div.hauptbild {
+    display: block;
+    float: left;
+    border: 1px black solid;
+    padding: 3px;
+    margin: 10px;
+}

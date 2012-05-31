@@ -1,5 +1,8 @@
 (defpackage :farbnamen
-  (:use :cl :ol))
+  (:use :cl :ol)
+  (:export
+   :colour->html
+   :html->colour))
 
 (in-package :farbnamen)
 
@@ -61,17 +64,18 @@
         (hunchentoot:redirect (web-elements:uri "/farben/bild-betrachten.html" :hash hash))))))
 
 (hunchentoot:define-easy-handler (view-image :uri "/farben/bild-betrachten.html") (hash)
+  ;; todo check for presence of image
     (web-elements:with-scaffold (stream :title "Farbe aus dem Bild wählen.")
-      (:div :class "hauptbild"
-            (:img :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)
-                  :onclick ""))
       (:form :class "farbemitteln"
              (:label :for "radius" "Mitteln über Radius (in px):")
              (:select :name "radius"
                       (:option "5")
                       (:option "10")
                       (:option "20")
-                      (:option "50")))))
+                      (:option "50")))
+      (:div :class "hauptbild"
+            (:img :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)
+                  :onclick ""))))
 
 (hunchentoot:define-easy-handler (view-image-jpg :uri "/farben/bild-betrachten.jpg") (hash)
   (let ((web-elements:presentable-objects uploaded-images))
@@ -84,6 +88,38 @@
 (defmethod web-elements:image-p ((colour-image colour-image))
   t)
 
+(defun parse-integer/web (string &optional (default 0))
+  "Parse a positive integer from a STRING, after stripping all
+non-digits from it.  If STRING is null or contains no digits, return
+DEFAULT."
+  ;; return 0 if string is nil
+  (if (null string) default
+      ;; strip out anything not a digit.
+      (let ((digit-string (remove-if-not #'digit-char-p string)))
+        (if (zerop (length digit-string))
+            default
+            (parse-integer digit-string)))))
+
+(hunchentoot:define-easy-handler (analyse-colour :uri "/farben/bild-analyse.html")
+    (hash x y radius)
+  #d
+  (setf x (parse-integer/web x)
+        y (parse-integer/web y)
+        radius (parse-integer/web radius 10))
+  (multiple-value-bind (image present) (gethash hash uploaded-images)
+    ;; todo error message if not present
+    (let* ((mean-colour (mean-colour (web-elements:preview image) x y radius))
+           (next-colours (next-colours mean-colour))
+           (mean-farbe (list "Gemessen" (colour->html mean-colour) mean-colour)))
+      
+      (cl-who:with-html-output-to-string (stream nil :indent t)
+        (:table :class "farbtabelle"
+                (dolist (farbe (list* mean-farbe next-colours))
+                  (dbug "~A" farbe)
+                  (cl-who:htm
+                   (:tr
+                    (:td (cl-who:str (farbe-name farbe)))
+                    (:td :style (format nil "width: 100px; background-color: ~A" (hex-code farbe)))))))))))
 
 ;;; open an image file and look at the colours around a point
 (defun mean-colour (image-path x0 y0 radius)
@@ -137,9 +173,15 @@
   "Add a vector representing the colour to the FARBE, by extracting
 the information from the html hex colour code."
   (append1 farbe
-           (vector (parse-integer (hex-code farbe) :start 1 :end 3 :radix 16)
-                   (parse-integer (hex-code farbe) :start 3 :end 5 :radix 16)
-                   (parse-integer (hex-code farbe) :start 5 :end 7 :radix 16))))
+           (html->colour (hex-code farbe))))
+
+(defun colour->html (colour)
+  (mkstr #\# (file-hashes:hash-format colour)))
+
+(defun html->colour (html)
+  (vector (parse-integer html :start 1 :end 3 :radix 16)
+          (parse-integer html :start 3 :end 5 :radix 16)
+          (parse-integer html :start 5 :end 7 :radix 16)))
 
 (defparameter farbentabelle
   (mapcar
