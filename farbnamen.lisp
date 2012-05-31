@@ -84,9 +84,13 @@
 (defmethod web-elements:image-p ((colour-image colour-image))
   t)
 
+
 ;;; open an image file and look at the colours around a point
-(defun mean-color (image-path x0 y0 radius)
-  (cl-gd:with-image-from-file (image image-path)
+(defun mean-colour (image-path x0 y0 radius)
+  "Open the image and compute the mean colour in the circle
+  around (X0,Y0) with given RADIUS.  Pixels \"not on the image\" are
+  simply ignored.  The result will be a vector of length 3."
+  (cl-gd:with-image-from-file* (image-path)
     (let ((w (cl-gd:image-width))
           (h (cl-gd:image-height))
           (valid-pixels 0)
@@ -104,21 +108,40 @@
                     (incf blue (cl-gd:color-component :blue color))
                     (incf green (cl-gd:color-component :green color))
                     (incf valid-pixels)))))
-      (vector (floor red valid-pixels)
-              (floor green valid-pixels)
-              (floor blue valid-pixels)))))
+      (if (zerop valid-pixels)
+          #(0 0 0) ; todo maybe handle this case separately
+          (vector (floor red valid-pixels)
+               (floor green valid-pixels)
+               (floor blue valid-pixels))))))
+
+(defun euclidean-distance (a b)
+  "Compute the euclidean distance of two sequences."
+  (sqrt
+   (reduce #'+
+           (map 'vector (lambda (x y) (expt (- x y) 2)) a b))))
+
+(defun next-colours (colour &optional (N 5) (distance #'euclidean-distance))
+  "Find the N colours closest to COLOUR in FARBENTABELLE, according to the euclidean distance of the colours."
+  (subseq
+   (sort (copy-list farbentabelle)
+         #'<
+         :key (lambda (x)
+                (funcall distance colour (rgb-value x))))
+   0 n))
 
 ;;; give a table full of the known colour names and their rgb values
 (defstruct (farbe :conc-name (:type list))
   farbe-name hex-code rgb-value)
 
 (defun table-entries (farbe)
+  "Add a vector representing the colour to the FARBE, by extracting
+the information from the html hex colour code."
   (append1 farbe
            (vector (parse-integer (hex-code farbe) :start 1 :end 3 :radix 16)
                    (parse-integer (hex-code farbe) :start 3 :end 5 :radix 16)
                    (parse-integer (hex-code farbe) :start 5 :end 7 :radix 16))))
 
-(defparameter *farbentabelle*
+(defparameter farbentabelle
   (mapcar
    #'table-entries
    '(("black"                "#000000")	
