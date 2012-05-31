@@ -13,4 +13,5 @@
     :serial t
     :components ((:file "file-hashes")
                  (:file "image-folders")
-                 (:file "web-elements")))
+                 (:file "web-elements")
+                 (:file "farbnamen")))
