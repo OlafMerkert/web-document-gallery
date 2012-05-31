@@ -7,7 +7,8 @@
                  ironclad
                  cl-gd
                  zpb-exif
-                 split-sequence)
+                 split-sequence
+                 parenscript)
     :serial t
     :components ((:file "file-hashes")
                  (:file "image-folders")

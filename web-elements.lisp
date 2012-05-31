@@ -43,12 +43,24 @@
          "/present.css" #P "~/Projekte/web-document-gallery/style.css")
         hunchentoot:*dispatch-table*))
 
-(defmacro with-scaffold ((stream-var &key (title "Presenting ...")) &body body)
+(eval-when (:load-toplevel :execute)
+  (push (hunchentoot:create-static-file-dispatcher-and-handler
+         "/lib/jquery.js" #P "~/Projekte/web-document-gallery/jquery-1.7.2.min.js")
+        hunchentoot:*dispatch-table*))
+
+
+
+(defmacro with-scaffold ((stream-var &key (title "Presenting ...") script)
+                         &body body)
   `(with-html-output-to-string (,stream-var nil :prologue t :indent t)
      (:html
       (:head
        (:title (esc ,title))
        (:link :rel "stylesheet" :type "text/css" :href "/present.css"))
+      ,@(when script
+             `((:script :type "text/javascript" :src "/lib/jquery.js")
+               (:script :type "text/javascript"
+                        (str ,script))))
       (:body
        (:h1 (esc ,title))
        (:p :class "message" "This site is still in heavy development.")
