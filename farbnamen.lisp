@@ -9,6 +9,15 @@
 (defvar uploaded-images
   (make-hash-table :test 'equal))
 
+(defun load-images-from-folder (folder)
+  (dolist (image-path (image-folders:images-in-folder folder))
+    (let ((parts (split-sequence:split-sequence #\. (pathname-name image-path))))
+      (when (equal (second parts) "scaled-1024")
+        (setf (gethash (first parts) uploaded-images)
+              (make-instance 'colour-image
+                             :file-hash (first parts)
+                             :preview image-path))))))
+
 ;;; provide a page to upload images for colour extraction
 (hunchentoot:define-easy-handler (upload-image :uri "/farben/bild-hochladen.html")
     ()
