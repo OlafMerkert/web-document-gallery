@@ -47,3 +47,20 @@ div.hauptbild {
     padding: 3px;
     margin: 10px;
 }
+
+.farbtabelle table {
+    display: block;
+}
+
+.farbtabelle tr {
+    display: block;
+    float: left;
+    margin-left: 12pt;
+}
+
+.farbtabelle td {
+    display: block;
+    height: 12pt;
+    float: left;
+    margin-left: 4pt;
+}

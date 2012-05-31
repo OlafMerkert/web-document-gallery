@@ -71,12 +71,16 @@
     (web-elements:with-scaffold (stream :title "Farbe aus dem Bild wählen."
                                         :script analyse-script)
       (:form :class "farbemitteln"
+             (:input :type "hidden" :id "hash" :value hash)
              (:label :for "radius" "Mitteln über Radius (in px):")
-             (:select :name "radius"
+             (:select :id "radius"
+                      (:option "1
+")
                       (:option "5")
                       (:option "10")
                       (:option "20")
                       (:option "50")))
+      (:div :id "colourstarget")
       (:div :class "hauptbild"
             (:img :id "clickonit"
                   :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)))))
@@ -86,9 +90,21 @@
 
 
 (defparameter analyse-script
-  (ps ($$ (document ready)
+  (ps
+    (defun analyse-colour (x y r)
+      ((@ ($ "#colourstarget") load) "/farben/bild-analyse.html"
+       (create :hash ((@ ($ "#hash") val))
+               :x x
+               :y y
+               :radius r))
+      #|(alert (concatenate 'string x ", " y ", " radius))|#)
+    ($$ (document ready)
         ($$ ("#clickonit" click e)
-          (alert (concatenate 'string (@ e |pageX|) ", " (@ e |pageY|)))))))
+          (analyse-colour (- (@ e |pageX|)
+                             (@ this |offsetLeft|))
+                          (- (@ e |pageY|)
+                             (@ this |offsetTop|))
+                          ((@ ($ "#radius") val)))))))
 
 (hunchentoot:define-easy-handler (view-image-jpg :uri "/farben/bild-betrachten.jpg") (hash)
   (let ((web-elements:presentable-objects uploaded-images))
@@ -123,16 +139,17 @@ DEFAULT."
     ;; todo error message if not present
     (let* ((mean-colour (mean-colour (web-elements:preview image) x y radius))
            (next-colours (next-colours mean-colour))
-           (mean-farbe (list "Gemessen" (colour->html mean-colour) mean-colour)))
+           (mean-farbe (list "gemessen" (colour->html mean-colour) mean-colour)))
       
       (cl-who:with-html-output-to-string (stream nil :indent t)
+        (:p "Gemessene und die 5 ähnlichsten Farben:")
         (:table :class "farbtabelle"
                 (dolist (farbe (list* mean-farbe next-colours))
                   (dbug "~A" farbe)
                   (cl-who:htm
                    (:tr
                     (:td (cl-who:str (farbe-name farbe)))
-                    (:td :style (format nil "width: 100px; background-color: ~A" (hex-code farbe)))))))))))
+                    (:td :style (format nil "width: 50px; background-color: ~A" (hex-code farbe)))))))))))
 
 ;;; open an image file and look at the colours around a point
 (defun mean-colour (image-path x0 y0 radius)
