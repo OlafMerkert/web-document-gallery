@@ -1,10 +1,13 @@
 (defpackage :farbnamen
-  (:use :cl :ol)
+  (:use :cl :ol
+        :parenscript) ; todo fix symbol collisions
   (:export
    :colour->html
    :html->colour))
 
 (in-package :farbnamen)
+
+(setf *js-string-delimiter* #\")
 
 (defparameter farbnamen-imagefolder
   #P "/home/olaf/farbnamen/")
@@ -65,7 +68,8 @@
 
 (hunchentoot:define-easy-handler (view-image :uri "/farben/bild-betrachten.html") (hash)
   ;; todo check for presence of image
-    (web-elements:with-scaffold (stream :title "Farbe aus dem Bild wählen.")
+    (web-elements:with-scaffold (stream :title "Farbe aus dem Bild wählen."
+                                        :script analyse-script)
       (:form :class "farbemitteln"
              (:label :for "radius" "Mitteln über Radius (in px):")
              (:select :name "radius"
@@ -74,8 +78,17 @@
                       (:option "20")
                       (:option "50")))
       (:div :class "hauptbild"
-            (:img :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)
-                  :onclick ""))))
+            (:img :id "clickonit"
+                  :src (web-elements:uri "/farben/bild-betrachten.jpg" :hash hash)))))
+
+(defmacro+ps $$ ((selector event-binding &optional event) &body body)
+  `((@ ($ ,selector) ,event-binding) (lambda ,(if event (list event)) ,@body)))
+
+
+(defparameter analyse-script
+  (ps ($$ (document ready)
+        ($$ ("#clickonit" click e)
+          (alert (concatenate 'string (@ e |pageX|) ", " (@ e |pageY|)))))))
 
 (hunchentoot:define-easy-handler (view-image-jpg :uri "/farben/bild-betrachten.jpg") (hash)
   (let ((web-elements:presentable-objects uploaded-images))
