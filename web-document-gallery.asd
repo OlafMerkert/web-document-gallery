@@ -8,7 +8,8 @@
                  cl-gd
                  zpb-exif
                  split-sequence
-                 parenscript)
+                 parenscript
+                 vecto)
     :serial t
     :components ((:file "file-hashes")
                  (:file "image-folders")

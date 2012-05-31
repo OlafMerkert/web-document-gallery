@@ -114,6 +114,20 @@
   (web-elements:file-hash
    web-elements:preview))
 
+;; todo maybe memoize this function
+(hunchentoot:define-easy-handler (create-transparent-circle :uri "/farben/transparenter-kreis.png")
+    (radius)
+  ;; todo fehlerbehandlung
+  (setf radius (parse-integer/web radius))
+  (setf (hunchentoot:content-type*) "image/png")
+  (let ((diameter (* 2 radius))
+        (out (hunchentoot:send-headers)))
+    (vecto:with-canvas (:width diameter :height diameter)
+      (vecto:set-rgba-fill 0 0 1 0.7)
+      (vecto:centered-circle-path radius radius radius)
+      (vecto:fill-path)
+      (vecto:save-png-stream out))))
+
 (defmethod web-elements:image-p ((colour-image colour-image))
   t)
 
