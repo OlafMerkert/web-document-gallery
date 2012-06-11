@@ -14,4 +14,5 @@
     :components ((:file "file-hashes")
                  (:file "image-folders")
                  (:file "web-elements")
+                 (:file "colour-distance")
                  (:file "farbnamen")))

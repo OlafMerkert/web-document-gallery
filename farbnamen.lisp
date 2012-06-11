@@ -4,6 +4,7 @@
   (:export
    :colour->html
    :html->colour))
+;; todo fix conflicts on symbols
 
 (in-package :farbnamen)
 
@@ -228,7 +229,8 @@ DEFAULT."
               dblue)))))
 ;; todo find a better colour-metric
 
-(defun next-colours (colour &optional (N 5) (distance #'rgb-metric))
+(defun next-colours (colour &optional (N 5)
+                     (distance #'colour-distance:delta-e/rgb))
   "Find the N colours closest to COLOUR in FARBENTABELLE, according to the euclidean distance of the colours."
   (subseq
    (sort (copy-list farbentabelle)
