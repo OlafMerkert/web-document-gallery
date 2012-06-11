@@ -86,8 +86,8 @@
             (:img :id "circle" :src "/farben/transparenter-kreis.png?radius=1"))
       (:div :id "colourstarget")))
 
-(defmacro+ps $$ ((selector event-binding &optional event) &body body)
-  `((@ ($ ,selector) ,event-binding) (lambda ,(if event (list event)) ,@body)))
+(ew (defmacro+ps $$ ((selector event-binding &optional event) &body body)
+   `((@ ($ ,selector) ,event-binding) (lambda ,(if event (list event)) ,@body))))
 
 
 (defparameter analyse-script

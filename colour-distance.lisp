@@ -26,7 +26,7 @@
             for j from 0
             sum (* (aref matrix i j)
                    x)))
-       (lrange matrix)))
+       (range (array-dimension matrix 0))))
 
 (defclass/f colour ()
   ())
@@ -113,9 +113,9 @@ RANGE to an instance of class RGB."
   (:documentation "convert the given colour to lab colour space"))
 
 (defparameter rgb->xyz-matrix
-  #((0.4360747  0.3850649  0.1430804)
-    (0.2225045  0.7168786  0.0606169)
-    (0.0139322  0.0971045  0.7141733))
+  #2A((0.4360747  0.3850649  0.1430804)
+      (0.2225045  0.7168786  0.0606169)
+      (0.0139322  0.0971045  0.7141733))
   "Conversion matrix to go from sRGB to XYZ, taken from
   http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html")
 

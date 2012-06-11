@@ -135,3 +135,4 @@ flipping."
     (6 (values nil 270))
     (7 (values :vertical 270))
     (8 (values nil 90))))
+;; todo exit gracefully if noe exif inforamtion is present
