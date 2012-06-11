@@ -209,12 +209,6 @@ DEFAULT."
                (floor green valid-pixels)
                (floor blue valid-pixels))))))
 
-(defun euclidean-distance (a b)
-  "Compute the euclidean distance of two sequences."
-  (sqrt
-   (reduce #'+
-           (map 'vector (lambda (x y) (expt (- x y) 2)) a b))))
-
 (bind-multi ((name red green blue)
              (part 0 1 2))
   (defun name (c)
