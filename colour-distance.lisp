@@ -34,7 +34,9 @@
 (defclass/f rgb (colour)
   (red
    green
-   blue))
+   blue)
+  (:documentation "model the rgb colour space, where each of the
+  channels is given by a number between 0 and 1."))
 
 (defclass/f xyz (colour)
   (x
@@ -73,7 +75,6 @@
 (defmacro coeff/quot (x y z)
   `(/ (* ,x ,z)
      (+ 1 (* ,y ,z))))
-
 ;; from http://www.brucelindbloom.com/index.html?ColorDifferenceCalc.html
 (defmethod colour-distance ((method (eql 'cmc))
                             (sample lab)
@@ -103,3 +104,39 @@
 
 (defun deg->rad (deg)
    (/ (* pi deg) 180))
+
+(defmethod colour-distance ((method (eql 'cmc))
+                            sample
+                            reference)
+  (colour-distance method (colour->lab sample) (colour->lab reference)))
+
+(defgeneric colour->lab (colour)
+  (:documentation "convert the given colour to lab colour space"))
+
+(defparameter rgb->xyz-matrix
+  #((0.4360747  0.3850649  0.1430804)
+    (0.2225045  0.7168786  0.0606169)
+    (0.0139322  0.0971045  0.7141733))
+  "Conversion matrix to go from sRGB to XYZ, taken from
+  http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html")
+
+(defmethod colour->lab ((colour rgb))
+  (with-slots (red green blue) colour
+    (let ((xyz
+           (matrix-product
+            rgb->xyz-matrix
+            (map 'vector
+                 ;; inverse sRGB companding
+                 (lambda (x)
+                   (if (<= x 0.4045)
+                       (/ x 12.92)
+                       (expt (coeff/quot 0.055 0.055 x) 2.4)))
+                 (vector red green blue)))))
+      (colour->lab
+       (make-instance 'xyz
+                      :x (aref xyz 0)
+                      :y (aref xyz 1)
+                      :z (aref xyz 2))))))
+
+(defmethod colour->lab ((colour lab))
+  colour)
