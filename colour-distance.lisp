@@ -138,5 +138,24 @@
                       :y (aref xyz 1)
                       :z (aref xyz 2))))))
 
+(defparameter xyz-reference-white ; currently D50
+  (make-instance 'xyz :x 0.96422 :y 1.00000 :z 0.82521))
+
+(defmethod colour->lab ((colour xyz))
+  (let ((epsilon 0.008856)
+        (kappa   903.3))
+    (destructuring-bind (fx fy fz)
+        (mapcar (lambda (part)
+                  (let ((r (/ (funcall part colour)
+                              (funcall part xyz-reference-white))))
+                    (if (> r epsilon)
+                        (expt r (/ 3))
+                        (/ (+ (* kappa r) 16) 116))))
+                (list #'x #'y #'z))
+      (make-instance 'lab
+                     :l (- (* 116 fy) 16)
+                     :a (* 500 (- fx fy))
+                     :b (* 200 (- fy fz))))))
+
 (defmethod colour->lab ((colour lab))
   colour)
