@@ -46,19 +46,18 @@
 (defclass/f lab (colour)
   (l a b))
 
-(defun rgb->luv (colour))
-
-(defun luv->rgb (colour))
-
-(defparameter *critical-distance* 1)
-
-(defun delta-e/luv (colour1 colour2)
-  (euclidean-distance colour1 colour2))
+(defun vector->rgb (vector &optional (range 255))
+  "Transform a given VECTOR with (integer) values ranging from 0 to
+RANGE to an instance of class RGB."
+  (make-instance 'rgb
+                 :red   (/ (aref vector 0) range)
+                 :green (/ (aref vector 1) range)
+                 :blue  (/ (aref vector 2) range)))
 
 (defun delta-e/rgb (colour1 colour2)
-  (delta-e/luv
-   (rgb->luv colour1)
-   (rgb->luv colour2)))
+  (colour-distance 'cmc
+                   (vector->rgb colour1)
+                   (vector->rgb colour2)))
 
 (defgeneric colour-distance (method sample reference)
   (:documentation "Calculate the Delta E difference of colour against
