@@ -21,7 +21,7 @@
   (setf (hunchentoot:return-code*) code)
   (hunchentoot:abort-request-handler))
 
-(hunchentoot:define-easy-handler (present-html :uri "/present.html")
+(hunchentoot:define-easy-handler (web-present-html :uri "/present.html")
     (hash name)
   (ncond object
     ((or (gethash hash presentable-objects)
@@ -84,7 +84,7 @@ keyword parameters to a function.  Possibly add global state parameters."
 (defmethod canonical-url ((image image))
   (uri "/present.html" :hash (file-hash image)))
 
-(hunchentoot:define-easy-handler (present-file :uri "/present.file")
+(hunchentoot:define-easy-handler (web-present-file :uri "/present.file")
     (hash name format size)
   (ncond object
     ((or (gethash hash presentable-objects)
@@ -97,9 +97,9 @@ keyword parameters to a function.  Possibly add global state parameters."
      (error-code))))
 
 (defparameter known-formats
-  '(("thumb"    . 'thumb)
-    ("preview"  . 'preview)
-    ("original" . 'original)))
+  '(("thumb"    . thumb)
+    ("preview"  . preview)
+    ("original" . original)))
 
 (defun parse-format (format)
   (assoc1 format known-formats nil :test #'string-equal))
