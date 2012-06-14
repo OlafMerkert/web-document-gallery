@@ -3,33 +3,31 @@
   (:export
    :start-server
    :stream
-   :define-html-presentation))
+   :define-html-presentation
+   :description-string
+   :canonical-url
+   :present-html
+   :present-file
+   :thumb
+   :preview
+   :original
+   :hashed-objects
+   :named-objects
+   :web-present-html
+   :web-present-file
+   :error-code
+   :uri))
 
 (in-package :web-elements)
 
+;;; general web related stuff
 (defun start-server ()
   (hunchentoot:start
    (make-instance 'hunchentoot:easy-acceptor :port 8080)))
 
-(defvar presentable-objects
-  (make-hash-table :test 'equal :size 400))
-
-(defvar named-objects
-  (make-hash-table :test 'equal :size 30))
-
 (defun error-code (&optional (code hunchentoot:+HTTP-NOT-FOUND+))
   (setf (hunchentoot:return-code*) code)
   (hunchentoot:abort-request-handler))
-
-(hunchentoot:define-easy-handler (web-present-html :uri "/present.html")
-    (hash name)
-  (ncond object
-    ((or (gethash hash presentable-objects)
-         (gethash name named-objects))
-     (with-scaffold (stream :title (description-string object))
-       (present-html object stream)))
-    (t
-     (error-code))))
 
 (eval-when (:load-toplevel :execute)
   (push (hunchentoot:create-static-file-dispatcher-and-handler
@@ -53,10 +51,14 @@ keyword parameters to a function.  Possibly add global state parameters."
   (format nil "~A~@[?~{~(~A~)=~A~^&~}~]" base parameters))
 ;; TODO encoding of the parameter values
 
-(defgeneric description-string (object))
+;;; define interface for the presentable objects
+(defgeneric description-string (object)
+  (:documentation "Provide a title/short description for the object.
+  This is for instance used as a page heading."))
 
-(defmethod description-string (object)
-  "Presenting ....")
+(defgeneric canonical-url (object)
+  (:documentation "Give a canonical url by which this object can be
+  accessed."))
 
 (defgeneric present-html (object stream)
   (:documentation "Write a html representation to the given stream."))
@@ -69,25 +71,41 @@ keyword parameters to a function.  Possibly add global state parameters."
      (with-html-output (stream)
        ,@body)))
 
-(defgeneric canonical-url (object))
+(defparameter known-formats
+  '(("thumb"    . thumb)
+    ("preview"  . preview)
+    ("original" . original)))
 
-(defclass/f image ()
-  (file-hash
-   original-file
-   preview
-   thumbnail))
+(defun parse-format (format)
+  "Map the string to symbols, to avoid using user sent data too much."
+  (assoc1 format known-formats nil :test #'string-equal))
 
-(define-html-presentation (image)
-  (:div :class "image-preview"
-   (:img :src (uri "/present.file" :hash (file-hash image) :size "preview"))))
+;;; some default behaviour
+(defmethod description-string (object)
+  "Presenting ....")
 
-(defmethod canonical-url ((image image))
-  (uri "/present.html" :hash (file-hash image)))
+;;; main data storage
+(defvar hashed-objects
+  (make-hash-table :test 'equal :size 400))
+
+(defvar named-objects
+  (make-hash-table :test 'equal :size 30))
+
+;;; present to the web.
+(hunchentoot:define-easy-handler (web-present-html :uri "/present.html")
+    (hash name)
+  (ncond object
+    ((or (gethash hash hashed-objects)
+         (gethash name named-objects))
+     (with-scaffold (stream :title (description-string object))
+       (present-html object stream)))
+    (t
+     (error-code))))
 
 (hunchentoot:define-easy-handler (web-present-file :uri "/present.file")
     (hash name format size)
   (ncond object
-    ((or (gethash hash presentable-objects)
+    ((or (gethash hash hashed-objects)
          (gethash name named-objects))
      (aif (present-file object (or (parse-format format)
                                    (parse-format size)))
@@ -95,66 +113,3 @@ keyword parameters to a function.  Possibly add global state parameters."
           (error-code)))
     (t
      (error-code))))
-
-(defparameter known-formats
-  '(("thumb"    . thumb)
-    ("preview"  . preview)
-    ("original" . original)))
-
-(defun parse-format (format)
-  (assoc1 format known-formats nil :test #'string-equal))
-
-(defmethod present-file ((image image) (format (eql 'thumb)))
-  (thumbnail image))
-
-(defmethod present-file ((image image) (format (eql 'preview)))
-  (preview image))
-
-(defmethod present-file ((image image) (format (eql 'original)))
-  (original-file image))
-
-(defmethod description-string ((image image))
-  (pathname-name (original-file image)))
-
-(defun path->image (path)
-  (file-hashes:with-hash (hash path)
-    (make-instance 'image
-                   :file-hash hash
-                   :original-file path
-                   :preview (image-folders:scaled-filename hash image-folders:preview-size)
-                   :thumbnail (image-folders:scaled-filename hash image-folders:thumb-size))))
-
-(defun folder-name (folder)
-  (or (pathname-name folder)
-      (last1 (pathname-directory folder))))
-
-(defun load-images-from (folder)
-  (setf (gethash (folder-name folder) named-objects)
-        (make-instance 'image-folder
-                       :name (folder-name folder)
-                       :content-list (mapcar
-                                      (compose (lambda (image)
-                                                 (setf (gethash (file-hash image)
-                                                                presentable-objects)
-                                                       image))
-                                               #'path->image)
-                                      (image-folders:images-in-folder folder)))))
-
-(defclass/f image-folder ()
-  (name
-   content-list))
-
-(defmethod description-string ((image-folder image-folder))
-  (name image-folder))
-
-(define-html-presentation (image-folder)
-  (:ul :class "imagelist"
-   (dolist (image (content-list image-folder))
-     (htm
-      (:li
-       (:a :href (canonical-url image)
-           (:img :src (uri "/present.file" :hash  (file-hash image) :size "thumb")
-                 :alt (description-string image))))))))
-
-(defmethod canonical-url ((image-folder image-folder))
-  (uri "/present.html" :name (name image-folder)))
