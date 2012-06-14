@@ -58,7 +58,11 @@ keyword parameters to a function.  Possibly add global state parameters."
 (defmethod description-string (object)
   "Presenting ....")
 
-(defgeneric present-html (object stream))
+(defgeneric present-html (object stream)
+  (:documentation "Write a html representation to the given stream."))
+
+(defgeneric present-file  (object format)
+  (:documentation "Return a pathname to be served."))
 
 (defmacro define-html-presentation ((class) &body body)
   `(defmethod present-html ((,class ,class) stream)
@@ -75,21 +79,39 @@ keyword parameters to a function.  Possibly add global state parameters."
 
 (define-html-presentation (image)
   (:div :class "image-preview"
-   (:img :src (uri "/present.jpg" :hash (file-hash image) :size "preview"))))
+   (:img :src (uri "/present.file" :hash (file-hash image) :size "preview"))))
 
 (defmethod canonical-url ((image image))
   (uri "/present.html" :hash (file-hash image)))
 
-(hunchentoot:define-easy-handler (image-present :uri "/present.jpg") (hash size)
-  (multiple-value-bind (image present) (gethash hash presentable-objects)
-    (when (and present (typep image 'image))
-      (cond ((string= size "thumb")
-             (hunchentoot:handle-static-file (thumbnail image)))
-            ((string= size "preview")
-             (hunchentoot:handle-static-file (preview image)))
-            ((string= size "original")
-             (hunchentoot:handle-static-file (original-file image)))))))
-;; TODO error handling in the IMAGE-PRESENT handler
+(hunchentoot:define-easy-handler (present-file :uri "/present.file")
+    (hash name format size)
+  (ncond object
+    ((or (gethash hash presentable-objects)
+         (gethash name named-objects))
+     (aif (present-file object (or (parse-format format)
+                                   (parse-format size)))
+          (hunchentoot:handle-static-file it)
+          (error-code)))
+    (t
+     (error-code))))
+
+(defparameter known-formats
+  '(("thumb"    . 'thumb)
+    ("preview"  . 'preview)
+    ("original" . 'original)))
+
+(defun parse-format (format)
+  (assoc1 format known-formats nil :test #'string-equal))
+
+(defmethod present-file ((image image) (format (eql 'thumb)))
+  (thumbnail image))
+
+(defmethod present-file ((image image) (format (eql 'preview)))
+  (preview image))
+
+(defmethod present-file ((image image) (format (eql 'original)))
+  (original-file image))
 
 (defmethod description-string ((image image))
   (pathname-name (original-file image)))
@@ -131,7 +153,7 @@ keyword parameters to a function.  Possibly add global state parameters."
      (htm
       (:li
        (:a :href (canonical-url image)
-           (:img :src (uri "/present.jpg" :hash  (file-hash image) :size "thumb")
+           (:img :src (uri "/present.file" :hash  (file-hash image) :size "thumb")
                  :alt (description-string image))))))))
 
 (defmethod canonical-url ((image-folder image-folder))
