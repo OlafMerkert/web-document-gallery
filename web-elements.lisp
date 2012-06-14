@@ -14,7 +14,7 @@
 (defvar presentable-objects
   (make-hash-table :test 'equal :size 400))
 
-(defvar named-folders
+(defvar named-objects
   (make-hash-table :test 'equal :size 30))
 
 (defun error-code (&optional (code hunchentoot:+HTTP-NOT-FOUND+))
@@ -24,12 +24,12 @@
 (hunchentoot:define-easy-handler (present-html :uri "/present.html")
     (hash name)
   (ncond object
-   ((or (gethash hash presentable-objects)
-        (gethash name named-folders))
-    (with-scaffold (stream :title (description-string object))
-      (present-html object stream)))
-   (t
-    (error-code))))
+    ((or (gethash hash presentable-objects)
+         (gethash name named-objects))
+     (with-scaffold (stream :title (description-string object))
+       (present-html object stream)))
+    (t
+     (error-code))))
 
 (eval-when (:load-toplevel :execute)
   (push (hunchentoot:create-static-file-dispatcher-and-handler
@@ -107,7 +107,7 @@ keyword parameters to a function.  Possibly add global state parameters."
       (last1 (pathname-directory folder))))
 
 (defun load-images-from (folder)
-  (setf (gethash (folder-name folder) named-folders)
+  (setf (gethash (folder-name folder) named-objects)
         (make-instance 'image-folder
                        :name (folder-name folder)
                        :content-list (mapcar
