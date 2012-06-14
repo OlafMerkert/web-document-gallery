@@ -17,19 +17,19 @@
 (defvar named-folders
   (make-hash-table :test 'equal :size 30))
 
-(hunchentoot:define-easy-handler (standard-present :uri "/present.html") (hash)
-  (multiple-value-bind (object present) (gethash hash presentable-objects)
-    (if present
-        (with-scaffold (stream :title  (description-string object))
-          (present-html object stream))
-        (error "Object with hash ~A not found." (escape-string hash)))))
+(defun error-code (&optional (code hunchentoot:+HTTP-NOT-FOUND+))
+  (setf (hunchentoot:return-code*) code)
+  (hunchentoot:abort-request-handler))
 
-(hunchentoot:define-easy-handler (folder-present :uri "/present/") (name)
-  (multiple-value-bind (folder present) (gethash name named-folders)
-    (if present
-        (with-scaffold (stream :title (description-string folder))
-          (present-html folder stream))
-        (error "Folder with name ~A not found." (escape-string name)))))
+(hunchentoot:define-easy-handler (present-html :uri "/present.html")
+    (hash name)
+  (ncond object
+   ((or (gethash hash presentable-objects)
+        (gethash name named-folders))
+    (with-scaffold (stream :title (description-string object))
+      (present-html object stream)))
+   (t
+    (error-code))))
 
 (eval-when (:load-toplevel :execute)
   (push (hunchentoot:create-static-file-dispatcher-and-handler
@@ -51,6 +51,7 @@
   "Format an url with BASE and a number of PARAMETERS, given like
 keyword parameters to a function.  Possibly add global state parameters."
   (format nil "~A~@[?~{~(~A~)=~A~^&~}~]" base parameters))
+;; TODO encoding of the parameter values
 
 (defgeneric description-string (object))
 
@@ -134,4 +135,4 @@ keyword parameters to a function.  Possibly add global state parameters."
                  :alt (description-string image))))))))
 
 (defmethod canonical-url ((image-folder image-folder))
-  (uri "/present/" :name (name image-folder)))
+  (uri "/present.html" :name (name image-folder)))
