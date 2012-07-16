@@ -10,6 +10,8 @@
                  split-sequence
                  parenscript)
     :serial t
-    :components ((:file "file-hashes")
+    :components ((:file "document-hierarchy")
+                 (:file "document-storage-hashtable")
+                 (:file "file-hashes")
                  (:file "image-folders")
                  (:file "web-elements")))
