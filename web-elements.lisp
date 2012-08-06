@@ -1,5 +1,6 @@
 (defpackage :web-elements
-  (:use :cl :ol :who)
+  (:use :cl :ol :who
+        :web-utils)
   (:export
    :start-server
    :stream
@@ -22,45 +23,24 @@
 (in-package :web-elements)
 
 ;;; general web related stuff
-(defun start-server ()
-  (hunchentoot:start
-   (make-instance 'hunchentoot:easy-acceptor :port 8080)))
 
-(defun error-code (&optional (code hunchentoot:+HTTP-NOT-FOUND+))
-  (setf (hunchentoot:return-code*) code)
-  (hunchentoot:abort-request-handler))
 
 (eval-when (:load-toplevel :execute)
-  (push (hunchentoot:create-static-file-dispatcher-and-handler
-         "/present.css" #P "~/Projekte/web-document-gallery/style.css")
-        hunchentoot:*dispatch-table*))
+  (setup-static-content
+   "/present.css"   #P"~/Projekte/web-document-gallery/style.css"
+   "/lib/jquery.js" #P"~/Projekte/web-document-gallery/jquery-1.7.2.min.js"))
 
-(eval-when (:load-toplevel :execute)
-  (push (hunchentoot:create-static-file-dispatcher-and-handler
-         "/lib/jquery.js" #P "~/Projekte/web-document-gallery/jquery-1.7.2.min.js")
-        hunchentoot:*dispatch-table*))
 
-(defmacro with-scaffold ((stream-var &key (title "Presenting ...") script)
+(defmacro with-scaffold ((&key (title "Presenting ...") script)
                          &body body)
-  `(with-html-output-to-string (,stream-var nil :prologue t :indent t)
-     (:html
-      (:head
-       (:title (esc ,title))
-       (:link :rel "stylesheet" :type "text/css" :href "/present.css"))
-      ,@(when script
-             `((:script :type "text/javascript" :src "/lib/jquery.js")
-               (:script :type "text/javascript"
-                        (str ,script))))
-      (:body
-       (:h1 (esc ,title))
-       (:p :class "message" "This site is still in heavy development.")
-       ,@body))))
-
-(defun uri (base &rest parameters)
-  "Format an url with BASE and a number of PARAMETERS, given like
-keyword parameters to a function.  Possibly add global state parameters."
-  (format nil "~A~@[?~{~(~A~)=~A~^&~}~]" base parameters))
-;; TODO encoding of the parameter values
+  `(html/document (:title title
+                          :style  "/present.css"
+                          ,@(when script
+                                  :script "/lib/jquery.js"
+                                  :script script))
+     (:h1 (esc ,title))
+     (:p :class "message" "This site is still in heavy development.")
+     ,@body))
 
 ;;; define interface for the presentable objects
 (defgeneric description-string (object)
@@ -108,8 +88,8 @@ keyword parameters to a function.  Possibly add global state parameters."
   (ncond object
     ((or (gethash hash hashed-objects)
          (gethash name named-objects))
-     (with-scaffold (stream :title (description-string object))
-       (present-html object stream)))
+     (with-scaffold (:title (description-string object))
+       (present-html object xml-output-stream)))
     (t
      (error-code))))
 
