@@ -11,7 +11,10 @@
    :thumb-filename
    :scaled-filename
    :thumb-size
-   :preview-size))
+   :preview-size
+   :create-scaled-version
+   :fix-orientation
+   :fix-orientation/helper))
 ;;; TODO maybe migrate to cl-fad
 
 (in-package :image-folders)
@@ -83,6 +86,11 @@ flipped copy and destroy the original image."
         (destroy-image image)
         new-image)
       image))
+
+(defun fix-orientation/helper (image-file)
+  (multiple-value-bind (flip rotation) (image-orientation image-file)
+    (lambda (image)
+      (rotate/destroy (flip/destroy image flip) rotation))))
 
 
 (defun create-scaled-versions (file &rest long-sides)

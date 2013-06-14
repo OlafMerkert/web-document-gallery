@@ -3,6 +3,7 @@
                  ol-data-utils
                  cl-who
                  hunchentoot
+                 web-utils
                  com.gigamonkeys.pathnames
                  ironclad
                  cl-gd

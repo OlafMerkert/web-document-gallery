@@ -45,6 +45,12 @@
   "test whether object is identified by a name."
   (typep object 'named-ref))
 
+(defmethod identifier ((object hashed-ref))
+  (list :hash (hash object)))
+
+(defmethod identifier ((object named-ref))
+  (list :name (name object)))
+
 ;;; interface for streams/lists of objects
 
 (defclass ref-stream ()
